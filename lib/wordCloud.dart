@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import "dart:math";
+import 'dart:math';
 import 'package:flutter_scatter/flutter_scatter.dart';
 import 'package:random_color/random_color.dart';
 import 'model/Artist.dart';
@@ -79,6 +79,8 @@ class ArtistPageState extends State<ArtistPage> {
   }
 
   Future<String> getCloudWords() async {
+    final stopwatch = Stopwatch()..start();
+
     var artistId = widget.artist.id;
 
     var response = await http.get(
@@ -88,6 +90,7 @@ class ArtistPageState extends State<ArtistPage> {
         });
     var data = json.decode(response.body);
     Map<String, int> usedWords = new Map<String, int>();
+    Map<String, int> filteredWords = new Map<String, int>();
     if (data.length > 0) {
       for (var i = 0, len = data.length; i < len; i++) {
         var songId = data[i]["id"];
@@ -114,8 +117,15 @@ class ArtistPageState extends State<ArtistPage> {
             usedWords[word] = usedWords[word] != null ? usedWords[word] + 1 : 1;
           }
         }
-
-        List<CloudWord> genCloudWords = generateCloudWords(usedWords);
+        List<int> values = usedWords.values.toList();
+        values.sort((a, b) => b.compareTo(a));
+        int minValue =
+            values.length < MAX_WORD_COUNT ? 2 : values[MAX_WORD_COUNT];
+        filteredWords = new Map.fromIterable(
+            usedWords.keys.where((k) => usedWords[k] >= minValue),
+            key: (k) => k,
+            value: (k) => usedWords[k]);
+        List<CloudWord> genCloudWords = generateCloudWords(filteredWords);
 
         if (mounted) {
           this.setState(() {
@@ -129,8 +139,10 @@ class ArtistPageState extends State<ArtistPage> {
         currentSong = null;
       });
     }
-    Cloud cloud = Cloud(widget.artist, usedWords, null);
+    Cloud cloud = Cloud(widget.artist, filteredWords, null);
     widget.saveToCache(cloud);
+    print('doSomething() executed in ${stopwatch.elapsed}');
+
     return "success";
   }
 
@@ -146,12 +158,10 @@ class ArtistPageState extends State<ArtistPage> {
       var rotation = _random.nextInt(5) % 3 == 0 ? true : false;
       CloudWord cloudWord = CloudWord(word, color, occurence, rotation);
       genCloudWords.add(cloudWord);
-    }
-    genCloudWords.sort((a, b) => b.size.compareTo(a.size));
-    if (genCloudWords.length > MAX_WORD_COUNT) {
-      genCloudWords.length = MAX_WORD_COUNT;
+      if (genCloudWords.length == MAX_WORD_COUNT) break;
     }
     genCloudWords[0].rotated = false;
+    //vill jag ha stora orden i mitten så sortera på size
     return genCloudWords;
   }
 
