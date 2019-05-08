@@ -39,7 +39,7 @@ class ArtistPageState extends State<ArtistPage> {
   Future<String> getArtistImage() async {
     var artistName = widget.artist.name;
     var credentials = new Spotify.SpotifyApiCredentials(
-        '8d249ca4324942cc97b566b33678e906', '9da18f2f03144e8eb2840356089e7251');
+        '8d249ca4324942cc97b566b33678e906', 'SPOTIFY_SECRET');
     var spotify = new Spotify.SpotifyApi(credentials);
 
     var search = await spotify.search
